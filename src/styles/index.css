@@ -178,6 +178,7 @@ header button{
     background-color: var(--color-grey-6);
     border-radius: var(--radius);
     margin-top: 36px;
+    width: 500px;
 }
 
 @media (min-width: 1024px){

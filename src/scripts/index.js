@@ -29,6 +29,30 @@ const jobsData = [
 ];
 
 const body = document.body;
+
+function saveVacanciesToLocalStorage(vacancies) {
+    localStorage.setItem("selectedVacancies", JSON.stringify(vacancies));
+}
+
+function loadVacanciesFromLocalStorage() {
+    const vacanciesSelecteds = localStorage.getItem("selectedVacancies");
+    const buttons = document.querySelectorAll(".button-vacancies");
+    if (vacanciesSelecteds) {
+        let vacancies = JSON.parse(vacanciesSelecteds);
+        vacancies.forEach((e) => {
+            buttons.forEach((btn) => {
+                let id = Number(btn.getAttribute("data-id"));
+                if (e.id === id) {
+                    btn.classList.add("active");
+                    btn.innerText = "remover candidatura";
+                }
+            });
+        });
+        return JSON.parse(vacanciesSelecteds);
+    }
+    return [];
+}
+
 function renderHeader() {
     const header = document.createElement("header");
     const divContainer = document.createElement("div");
@@ -48,7 +72,7 @@ function renderHeader() {
     p.innerText =
         "Está procurando oportunidades de estágio, emprego ou bolsas de estudo? Ou até mesmo oportunidades para atender eventos de tecnologia no Brasil e ao redor do mundo?";
     strong.innerText = "Confere aqui embaixo o que temos para você!";
-    button.innerText = "ir para a seçao de vagas";
+    button.innerText = "ir para a seção de vagas";
 
     body.insertBefore(header, body.children[0]);
     header.append(divContainer);
@@ -62,7 +86,11 @@ function renderMain() {
     body.insertBefore(main, body.children[0]);
     renderHeader();
     renderListVacancies(jobsData);
+    const selectedVacancies = loadVacanciesFromLocalStorage();
+    renderVacanciesSelecteds(selectedVacancies);
+    eventButtons(jobsData);
 }
+
 function renderListVacancies(list) {
     const main = document.querySelector("main");
 
@@ -79,7 +107,7 @@ function renderListVacancies(list) {
     divVacanciesSelecteds.append(h3, listSelecteds);
 
     h3.innerText = "Vagas selecionadas";
-    p.innerText = "Voce ainda nao aplicou para nenhuma vaga";
+    p.innerText = "Você ainda não aplicou para nenhuma vaga";
     h2.innerText = "Vagas";
     divVacancies.className = "div-vacancies";
     listVacancies.className = "list-vacancies";
@@ -109,6 +137,8 @@ function renderListVacancies(list) {
         divButton.className = "div-button";
         button.className = "button-vacancies";
 
+        button.setAttribute("data-id", element.id);
+
         listVacancies.append(li);
         li.append(title, divLocation, information, divButton);
         divLocation.append(institution, city);
@@ -120,10 +150,48 @@ function renderListVacancies(list) {
     main.append(divVacanciesSelecteds);
 }
 
+let filteredVacancies = [];
+
+function eventButtons(list) {
+    let buttonAdd = document.querySelectorAll(".button-vacancies");
+
+    function updateVacancies() {
+        const activeButtons = document.querySelectorAll(
+            ".button-vacancies.active"
+        );
+
+        filteredVacancies = [];
+
+        activeButtons.forEach((activeButton) => {
+            let id = Number(activeButton.getAttribute("data-id"));
+            activeButton.innerText = "Remover candidatura";
+
+            const selectedVacancy = list.find((vacancie) => vacancie.id === id);
+            if (selectedVacancy) {
+                filteredVacancies.push(selectedVacancy);
+            }
+        });
+
+        renderVacanciesSelecteds(filteredVacancies);
+        saveVacanciesToLocalStorage(filteredVacancies);
+    }
+
+    buttonAdd.forEach((button) => {
+        button.addEventListener("click", () => {
+            button.classList.toggle("active");
+            if (button.classList.contains("active")) {
+                button.innerText = "Remover candidatura";
+            } else {
+                button.innerText = "Candidatar";
+            }
+            updateVacancies();
+        });
+    });
+}
+
 function renderVacanciesSelecteds(list) {
     const ul = document.querySelector(".list-selecteds");
-    console.log(ul);
-
+    ul.innerHTML = "";
     list.forEach((element) => {
         const li = document.createElement("li");
         const divTitle = document.createElement("div");
@@ -140,8 +208,30 @@ function renderVacanciesSelecteds(list) {
         institution.innerText = element.enterprise;
         city.innerText = element.location;
 
+        buttonDelete.setAttribute("data-id", element.id);
+        buttonDelete.className = "button-remove";
+        buttonDelete.addEventListener("click", () => {
+            const id = Number(buttonDelete.getAttribute("data-id"));
+            let vacancieIndex = filteredVacancies.findIndex(
+                (vacancie) => vacancie.id === id
+            );
+            if (vacancieIndex !== -1) {
+                filteredVacancies.splice(vacancieIndex, 1);
+                const button = document.querySelector(
+                    `button[data-id='${id}']`
+                );
+                if (button) {
+                    button.innerText = "Candidatar";
+                    button.classList.remove("active");
+                }
+            }
+            renderVacanciesSelecteds(filteredVacancies);
+            saveVacanciesToLocalStorage(filteredVacancies);
+        });
+
         divTitle.className = "div-title-selecteds";
         divLocation.className = "div-location-selecteds";
+
         divTitle.append(title, buttonDelete);
         buttonDelete.append(figure);
         figure.append(imgTrash);
@@ -152,4 +242,3 @@ function renderVacanciesSelecteds(list) {
 }
 
 renderMain();
-renderVacanciesSelecteds(jobsData);
